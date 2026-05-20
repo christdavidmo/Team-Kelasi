@@ -28,6 +28,12 @@ postgres_data/
 *.sln
 *.swp
 
+
+# Frontend React
+node_modules/
+build/
+
+
 # Fichiers système Windows
 Thumbs.db
 desktop.ini

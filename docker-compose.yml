@@ -1,32 +1,68 @@
+version: '3.9'
+
 services:
-  # Notre base de données
+
+  # ── 1. PostgreSQL 15 ────────────────────────────────────────────────────────
   db:
-    image: postgres:15
-    container_name: skula_db
-    restart: always
+    image: postgres:15-alpine
+    env_file: .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password123
-      POSTGRES_DB: skula_db
-    ports:
-      - "5432:5432"
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-  # Notre API FastAPI
-  api:
-    build: .
-    container_name: skula_api
+  # ── 2. Redis 7 ──────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── 3. Backend FastAPI ──────────────────────────────────────────────────────
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app          # hot-reload: code changes reflect immediately
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app  # Permet de voir tes modifs de code en direct sans relancer Docker
+    env_file: .env
     environment:
-      - DATABASE_URL=postgresql://postgres:password123@db:5432/skula_db
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL:    redis://redis:6379/0
     depends_on:
-      - db
-    # Cette commande permet de relancer l'api dès que tu modifies un fichier (Hot Reload)
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── 4. Frontend React ───────────────────────────────────────────────────────
+  frontend:
+    build: ./Frontend
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules       # preserve container node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
