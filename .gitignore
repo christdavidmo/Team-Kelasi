@@ -1,0 +1,33 @@
+# Python (Fichiers temporaires et exécutables)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Environnements virtuels (Pour nettoyer tes essais Windows)
+.venv/
+venv/
+ENV/
+env/
+
+# CONFIGURATION & SECRETS (LE PLUS IMPORTANT)
+.env
+
+# Base de données locale & Docker
+.docker_data/
+postgres_data/
+
+# IDEs et éditeurs de code
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Fichiers système Windows
+Thumbs.db
+desktop.ini

@@ -1,0 +1,32 @@
+services:
+  # Notre base de données
+  db:
+    image: postgres:15
+    container_name: skula_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: skula_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Notre API FastAPI
+  api:
+    build: .
+    container_name: skula_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app  # Permet de voir tes modifs de code en direct sans relancer Docker
+    environment:
+      - DATABASE_URL=postgresql://postgres:password123@db:5432/skula_db
+    depends_on:
+      - db
+    # Cette commande permet de relancer l'api dès que tu modifies un fichier (Hot Reload)
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
